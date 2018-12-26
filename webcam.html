@@ -1,12 +1,8 @@
+<!doctype html>
 <html>
-  <body>
+<body>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script src="cam.js"></script>
-    <p><video id="video" autoplay="autoplay"></video></p>
-    <p><input type="button" id="buttonSnap" value="Take screenshot" disabled="disabled" onclick="snapshot()" /></p>
-    <p>
-      <input type="button" id="buttonStart" value="Start" disabled="disabled" onclick="start()" />
-      <input type="button" id="buttonStop" value="Stop" disabled="disabled" onclick="stop()" />
-    </p>
-    <p><canvas id="canvas"></canvas></p>
-  </body>
+    <video id="webcam" width="500" height="400" autoplay></video>
+</body>
 </html>
