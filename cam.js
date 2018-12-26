@@ -1,4 +1,3 @@
-$(document).ready(function() {
 "use strict";
 var video = document.getElementById('video');
 var canvas = document.getElementById('canvas');
@@ -96,4 +95,3 @@ function start()
 }
 
 start();
-});
