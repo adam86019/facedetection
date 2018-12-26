@@ -1,4 +1,4 @@
-/*
+
 $(document).ready(function() {
   const video = $('#webcam')[0];
 
@@ -8,7 +8,8 @@ $(document).ready(function() {
 
   navigator.mediaDevices.getUserMedia({ video: true }).then(onStreaming);
 });
-*/
+
+/*
 // Grab elements, create settings, etc.
 var video = document.getElementById('video');
 
@@ -21,3 +22,4 @@ if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         video.play();
     });
 }
+*/
