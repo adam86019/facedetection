@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <script src="clmtrackr.js"></script>
+    <script src="model_pca_20_svm.js"></script>
+    <title>Title</title>
+    <style>
+        #container {
+            position: relative;
+            width: 370px;
+            /*margin : 0px auto;*/
+        }
+        #overlay {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            -o-transform: scaleX(-1);
+            -webkit-transform: scaleX(-1);
+            transform: scaleX(-1);
+            -ms-filter: fliph;
+            /*IE*/
+            
+            filter: fliph;
+            /*IE*/
+        }
+        #videoel {
+            -o-transform: scaleX(-1);
+            -webkit-transform: scaleX(-1);
+            transform: scaleX(-1);
+            -ms-filter: fliph;
+            /*IE*/
+            
+            filter: fliph;
+            /*IE*/
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <video id="videoel" width="640" height="480" preload="auto" loop></video>
+        <canvas id="overlay" width="640" height="480"></canvas>
+    </div>
+    <input class="btn" type="button" value="wait, loading video & images" disabled="disabled" onclick="startVideo()" id="startbutton"></input>
+    <script>
+        var vid = document.getElementById('videoel');
+        var overlay = document.getElementById('overlay');
+        var overlayCC = overlay.getContext('2d');
+
+        var buffer = document.createElement('canvas');
+        var bufferContext = buffer.getContext('2d');
+
+        var ctrack = new clm.tracker({
+            useWebGL: true
+        });
+        ctrack.init(pModel);
+
+        function enablestart() {
+            var startbutton = document.getElementById('startbutton');
+            startbutton.value = "start";
+            startbutton.disabled = null;
+        }
+
+        navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+        window.URL = window.URL || window.webkitURL || window.msURL || window.mozURL;
+
+        if (navigator.getUserMedia) {
+            var videoSelector = {
+                video: true
+            };
+            if (window.navigator.appVersion.match(/Chrome\/(.*?) /)) {
+                var chromeVersion = parseInt(window.navigator.appVersion.match(/Chrome\/(\d+)\./)[1], 10);
+                if (chromeVersion < 20) {
+                    videoSelector = "video";
+                }
+            };
+
+            navigator.getUserMedia(videoSelector, function(stream) {
+                if (vid.mozCaptureStream) {
+                    vid.mozSrcObject = stream;
+                } else {
+                    vid.src = (window.URL && window.URL.createObjectURL(stream)) || stream;
+                }
+                vid.play();
+            }, function() {
+                alert("There was some problem trying to fetch video from your webcam, using a fallback video instead.");
+            });
+        } else {
+            alert("Your browser does not seem to support getUserMedia, using a fallback video instead.");
+        }
+
+        vid.addEventListener('canplay', enablestart, false);
+
+        function startVideo() {
+            vid.play(); //videoスタート
+            ctrack.start(vid); //トラッキング開始
+            drawLoop();
+        }
+        var flg = 0;
+
+        function drawLoop() {
+            requestAnimationFrame(drawLoop); //ずっと同様の処理をおこなう
+            overlayCC.clearRect(0, 0, 400, 300);
+
+            if (ctrack.getCurrentPosition()) {
+                var data = ctrack.getCurrentPosition(); //顔の各パーツの座標を取得
+                //顔領域の矩形座標を求める
+                var max = [0, 0];
+                var min = [100000, 100000];
+                for (var i = 0; i < data.length; i++) {
+                    max[0] = max[0] < data[i][0] ? data[i][0] : max[0];
+                    max[1] = max[1] < data[i][1] ? data[i][1] : max[1];
+                    min[0] = min[0] > data[i][0] ? data[i][0] : min[0];
+                    min[1] = min[1] > data[i][1] ? data[i][1] : min[1];
+                }
+                var width = vid.videoWidth;
+                var height = vid.videoHeight;
+                if (width == 0 || height == 0) {
+                    return;
+                }
+
+                buffer.width = overlay.width = width;
+                buffer.height = overlay.height = height;
+                bufferContext.drawImage(vid, 0, 0);
+
+                var src = bufferContext.getImageData(0, 0, width, height); // カメラ画像
+                var dest = bufferContext.createImageData(buffer.width, buffer.height); // 出力画像
+
+                //ちょっとモザイク領域を広めにする処理
+                min[1] = min[1] - (max[1] - min[1]) / 2;
+                ex = (max[0] - min[0]) / 4;
+                min[0] = min[0] - ex;
+                max[0] = max[0] + ex;
+
+                //モザイク化。シンプルに各領域の左上の色と同じ色に書き換える
+                var size = 25;
+                for (var y = Math.floor(min[1]); y < Math.floor(max[1]); y++) {
+                    for (var x = Math.floor(min[0]); x < Math.floor(max[0]); x++) {
+                        for (var c = 0; c < 3; c++) {
+                            var i = ((y - y % size) * width + (x - x % size)) * 4 + c;
+                            var j = (y * width + x) * 4 + c;
+                            dest.data[j] = src.data[i];
+                        }
+                        dest.data[(y * width + x) * 4 + 3] = 255; // Alpha値の設定
+                    }
+                }
+
+                //目周辺の座標で矩形を作る
+                max = [0, 0];
+                min = [100000, 100000];
+                for (var i = 0; i < 2; i++) {
+                    max[0] = max[0] < data[i][0] ? data[i][0] : max[0];
+                    max[1] = max[1] < data[i][1] ? data[i][1] : max[1];
+                    min[0] = min[0] > data[i][0] ? data[i][0] : min[0];
+                    min[1] = min[1] > data[i][1] ? data[i][1] : min[1];
+                }
+                for (var i = 13; i < 32; i++) {
+                    max[0] = max[0] < data[i][0] ? data[i][0] : max[0];
+                    max[1] = max[1] < data[i][1] ? data[i][1] : max[1];
+                    min[0] = min[0] > data[i][0] ? data[i][0] : min[0];
+                    min[1] = min[1] > data[i][1] ? data[i][1] : min[1];
+                }
+                for (var y = Math.floor(min[1]); y < Math.floor(max[1]); y++) {
+                    for (var x = Math.floor(min[0]); x < Math.floor(max[0]); x++) {
+                        for (var c = 0; c < 3; c += 1) { //RGBを0に
+                            var i = (y * width + x) * 4 + c;
+                            dest.data[i] = 0;
+                        }
+                        dest.data[(y * width + x) * 4 + 3] = 255; // Alpha値の設定
+                    }
+                }
+
+                overlayCC.putImageData(dest, 0, 0); //canvasに変換後の画像を書き出す
+            }
+        }
+    </script>
+</body>
+
+</html>
