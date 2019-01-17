@@ -12,9 +12,10 @@ $(document).ready(function() {
 		requestAnimationFrame(trackingLoop);
 		let currentPosition = ctrack.getCurrentPosition();
 		overlayCC.clearRect(0, 0, 400, 300);
-		/*if (currentPosition) {
+		if (currentPosition) {
 			ctrack.draw(overlay);
-		}*/
+		}
+		/*
 		if (currentPosition) {
   			// Draw facial mask on overlay canvas:
   			ctrack.draw(overlay);
@@ -40,6 +41,7 @@ $(document).ready(function() {
     			0, 0, eyesCanvas.width, eyesCanvas.height
   			);
 		}
+		*/
 	}
 	
 	function onStreaming(stream) {
@@ -52,7 +54,7 @@ ctrack.start(video);
 trackingLoop();
 
 });
-
+/*
 function getEyesRectangle(positions) {
 	const minX = positions[23][0] - 5;
 	const maxX = positions[28][0] + 5;
@@ -63,4 +65,4 @@ function getEyesRectangle(positions) {
 	const height = maxY - minY;
 	
 	return [minX, minY, width, height];
-}
+}*/
